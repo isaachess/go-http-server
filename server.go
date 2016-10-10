@@ -61,15 +61,14 @@ func handleConnection(conn net.Conn) {
 			bodyLength := len(message[bodyStartIndex:])
 			if bodyLength >= contentLength {
 				body = message[bodyStartIndex : bodyStartIndex+contentLength]
+				break
 			}
-			break
 		}
 	}
 	handleMessage(headers, body)
 }
 
 func parseHeaders(headers string, lineEnd string) Headers {
-	fmt.Println(headers)
 	splitHeaders := strings.Split(headers, lineEnd)
 	finalHeaders := map[string]string{"request": splitHeaders[0]}
 	for _, value := range splitHeaders[1:] {
@@ -84,6 +83,7 @@ func getContentLength(headers Headers) (int, error) {
 }
 
 func handleMessage(headers Headers, body []byte) {
+	fmt.Println("handling message")
 	fmt.Println(headers)
 	fmt.Println(string(body))
 }

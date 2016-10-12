@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strconv"
@@ -9,6 +10,33 @@ import (
 )
 
 type Headers map[string]string
+type Body []byte
+
+type Request struct {
+	headers Headers
+	body    Body
+	url     string
+	method  string
+}
+
+func (r *Request) jsonBody() (string, error) {
+	body, err := json.Marshal(string(r.body))
+	return string(body), err
+}
+
+func (r *Request) addData(headers Headers, body Body) {
+	r.headers = headers
+	r.body = body
+	method, url, _ := methodUrlVersion(headers)
+	r.method = method
+	r.url = url
+}
+
+func methodUrlVersion(headers Headers) (string, string, string) {
+	requestDetails := headers["request"]
+	splitted := strings.Split(requestDetails, " ")
+	return splitted[0], splitted[1], splitted[2]
+}
 
 func main() {
 	port := 3001
@@ -34,9 +62,10 @@ func handleConnection(conn net.Conn) {
 	headersDone := false
 	var message []byte
 	var headers Headers
-	var body []byte
+	var body Body
 	var contentLength int
 	var bodyStartIndex int
+
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
@@ -58,14 +87,16 @@ func handleConnection(conn net.Conn) {
 
 		// handling body
 		if headersDone == true {
-			bodyLength := len(message[bodyStartIndex:])
+			bodyLength := len(message) - bodyStartIndex
 			if bodyLength >= contentLength {
 				body = message[bodyStartIndex : bodyStartIndex+contentLength]
 				break
 			}
 		}
 	}
-	handleMessage(headers, body)
+	request := new(Request)
+	request.addData(headers, body)
+	handleMessage(request)
 }
 
 func parseHeaders(headers string, lineEnd string) Headers {
@@ -82,8 +113,10 @@ func getContentLength(headers Headers) (int, error) {
 	return strconv.Atoi(headers["Content-Length"])
 }
 
-func handleMessage(headers Headers, body []byte) {
-	fmt.Println("handling message")
-	fmt.Println(headers)
-	fmt.Println(string(body))
+func handleMessage(request *Request) {
+	fmt.Println(request.headers)
+	fmt.Println(request.body)
+	fmt.Println(request.method)
+	fmt.Println(request.url)
+	fmt.Println(request.jsonBody())
 }

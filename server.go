@@ -11,6 +11,7 @@ import (
 
 type Headers map[string]string
 type Body []byte
+type JSONBody map[string]interface{}
 
 type Request struct {
 	headers Headers
@@ -19,9 +20,10 @@ type Request struct {
 	method  string
 }
 
-func (r *Request) jsonBody() (string, error) {
-	body, err := json.Marshal(string(r.body))
-	return string(body), err
+func (r *Request) jsonBody() JSONBody {
+	var dat map[string]interface{}
+	json.Unmarshal(r.body, &dat)
+	return dat
 }
 
 func (r *Request) addData(headers Headers, body Body) {
